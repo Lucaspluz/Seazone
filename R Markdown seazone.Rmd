@@ -1,0 +1,352 @@
+---
+title: "Seazone Code Challenge - Data Science"
+author: "Lucas Primo Luz"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+    html_document:
+        number_selections: yes
+        includes:
+          in_header: "icon.html"
+        toc: yes
+        toc_float:
+           collapsed: yes
+           smooth_scroll: no
+
+---
+
+Importando pacote
+```{r, warning=FALSE, message=FALSE}
+library(dplyr)
+library(knitr)
+```
+
+Importando os dados
+
+```{r Importando os dados}
+detalhes <- read.csv("desafio_details.csv", sep = ",")
+preco <- read.csv("desafio_priceav.csv", sep = ",")
+```
+
+Corrigindo a acentuação dos bairros
+
+```{r}
+
+Encoding(detalhes$suburb) <- "UTF-8"
+
+```
+
+Agrupando as tabelas
+
+```{r}
+
+dados <- merge(preco,detalhes,by="airbnb_listing_id")
+
+```
+
+
+## 1.Ordene os bairros em ordem crescente de número de listings
+
+Quantidade de listings por bairro
+
+```{r}
+
+num_listing <- tapply(dados$suburb, dados$suburb , FUN = length)
+
+```
+
+Ordenando os dados em ordem crescente
+
+```{r}
+
+( num_listing <- sort(num_listing) )
+
+```
+
+Gráfico do número de anúncios por bairro
+
+```{r}
+
+g_num_listing <- barplot(num_listing, 
+        main = "Número de listings por bairro",
+        xlab = "Bairros",
+        ylab = "Quantidade de anúncios",
+        ylim = c(0,200000),
+        las = 1,
+        col.lab = "gray47",
+        col = c("royalblue1","gold1","orangered4","orange1","darkblue"),
+        cex.lab = 0.7, cex.axis = 0.7, cex = 0.7,
+        border = NA
+)
+
+text(x=c(g_num_listing), y=num_listing, labels=num_listing, 
+     pos=3, cex = 0.8, col = "gray20")
+
+```
+
+## 2.Ordene os bairros em ordem crescente de faturamento médio dos listings
+
+Filtrando os dados dos listings ocupados
+
+```{r}
+
+ocup <- dados[(dados$occupied == 0), ]
+
+
+```
+
+Calculando o faturamento dos Id's por bairro
+
+```{r}
+
+fat_por_bairro = tapply(ocup$price_string,list(ocup$airbnb_listing_id,ocup$suburb),sum)
+
+```
+
+as 5 primeiras linhas do faturamento
+
+```{r}
+
+kable(head(fat_por_bairro, 5))
+
+```
+
+Calculando o faturamento médio para cada Bairro removendo os NA
+
+```{r}
+
+( med_canasvieiras     = mean(na.omit( fat_por_bairro[,1])) )
+( med_centro           = mean(na.omit( fat_por_bairro[,2])) )
+( med_ingleses         = mean(na.omit( fat_por_bairro[,3])) )
+( med_jerere           = mean(na.omit( fat_por_bairro[,4])) )
+( med_lagoadaconceicao = mean(na.omit( fat_por_bairro[,5])) )
+
+```
+
+Agrupando as medias dos bairros
+
+```{r}
+( fat_med = c(med_canasvieiras,med_centro,med_ingleses,med_jerere,med_lagoadaconceicao) )
+
+```
+
+Ordenando o faturamento dos bairros em ordem crescente
+
+```{r}
+( fat_med = sort( round(fat_med, 2)) )
+
+```
+
+Gráfico do faturamento médio por bairro
+
+```{r}
+
+g_fat_med <- barplot(fat_med, 
+                     main = "Faturamento médio dos listings por bairro",
+                     ylab = "Faturamento médio (R$)",
+                     ylim = c(0,30000),
+                     las = 1,
+                     names = c("Centro", "Lagoa da Conceição", "Canasvieiras", "Ingleses", "Jurerê"),
+                     col.lab = "gray47",
+                     col = c("royalblue1","gold1","orange1","darkblue","orangered4"),
+                     cex.lab = 0.7, cex.axis = 0.7, cex = 0.7,
+                     border = NA
+)
+
+text(x=c(g_fat_med), y=fat_med, labels=fat_med, 
+     pos=3, cex = 0.8, col = "gray20")
+
+```
+
+## 3.Existem correlações entre as características de um anúncio e seu faturamento? 
+
+removendo o NA dos listings ocupados
+
+```{r}
+
+ocup = na.omit(ocup)
+
+```
+
+Criando matriz do faturamento e seu respectivo id
+```{r}
+M_fat <- cbind(tapply(ocup$price_string,sort(ocup$airbnb_listing_id),sum),sort(unique(ocup$airbnb_listing_id)))
+
+```
+
+Nomeando as colunas
+
+```{r}
+colnames(M_fat) <- c("Faturamento", "airbnb_listing_id")
+
+```
+
+Agrupando a matriz do faturamento com os dados gerais ocupados
+
+```{r}
+
+faturamento <- merge(M_fat,ocup, by="airbnb_listing_id")
+```
+
+Para cálculo da correlação vamos unificar os id's
+
+```{r}
+fat_unico <- distinct(faturamento, 
+         faturamento$airbnb_listing_id,
+         faturamento$Faturamento,
+         faturamento$number_of_bedrooms,
+         faturamento$number_of_bathrooms,
+         faturamento$star_rating,
+         faturamento$number_of_reviews)
+
+```
+
+
+Correlação entre o faturamento e o número de quartos
+
+```{r}
+
+round(corfatnumquar <- cor(fat_unico$`faturamento$Faturamento`, fat_unico$`faturamento$number_of_bedrooms`), 2)
+
+```
+
+Correlação entre o faturamento e o número de banheiros
+
+```{r}
+
+round(corfatnumban <- cor(fat_unico$`faturamento$Faturamento`, fat_unico$`faturamento$number_of_bathrooms`), 2)
+
+```
+
+Correlação ente o faturamento e a avaliação (número de estrelas)
+
+```{r}
+
+round(corfatav <- cor(fat_unico$`faturamento$Faturamento`, fat_unico$`faturamento$star_rating`), 2)
+
+```
+
+Correlação entre o faturamento e a quantidade de comentários
+
+```{r}
+
+round( corfatnumcom <- cor(fat_unico$`faturamento$Faturamento`, fat_unico$`faturamento$number_of_reviews`), 2)
+
+```
+
+## 4.Qual a antecedência média das reservas?
+
+Removendo os dados sem reserva
+
+```{r}
+
+reserv <- dados[(dados$booked_on != "blank"), ]
+
+```
+
+Transformando os dados no formato data
+
+```{r}
+
+reserv$booked_on <- as.Date(reserv$booked_on)
+reserv$date <- as.Date(reserv$date)
+
+```
+
+Adicionando uma coluna na tabela com as antecedências das reservas em números de dias
+
+```{r}
+
+reserv$antec <- with(reserv, (reserv$date) - (reserv$booked_on))
+
+```
+
+Deixando em 2 casas decimais
+
+```{r}
+
+round( antec_media <- mean(reserv$antec), 2)
+
+```
+
+### a.Esse número é maior ou menor para finais de semana?
+
+
+Adicionando uma coluna com os dias da semana
+
+```{r}
+
+reserv$dia_da_semana <- with(reserv, weekdays.Date(reserv$date, abbreviate = FALSE))
+
+```
+
+Cálculo da média da antecedência das reservas sendo sábado e domingo
+
+```{r}
+
+fim_semana <- tapply(reserv$antec, reserv$dia_da_semana == "domingo" | reserv$dia_da_semana == "sábado", mean)
+
+```
+
+```{r}
+
+( fim_semana <- round(fim_semana,2) )
+
+```
+
+Gráfico da antecedência média das reservas nos finais de semana em relação aos dias da semana(segunda à sexta)
+
+```{r}
+
+g_fim_semana = barplot(fim_semana, 
+        main = "Antecedência média das reservas entre \n os dias da semana e finais de semana",
+        ylab = "Média de dias",
+        ylim = c(0,40),
+        las = 1,
+        names = c("Dias da semana","Finais de semana"),
+        col = c("tomato3","purple4"),
+        cex.lab = 0.9, cex.axis = 0.8, cex = 1,
+        border = NA
+)
+
+text(x=c(g_fim_semana), y=fim_semana, labels=fim_semana, pos=3)
+
+```
+
+Por curiosidade vamos ver se há diferença nas antecedências médias nos por cada dia da semana
+
+Antecedência média por dia da semana
+
+```{r}
+
+antec_media_por_dia = tapply(reserv$antec, reserv$dia_da_semana , FUN = mean)
+
+```
+
+Ordenando os dados pelo dia em que a antecedência média da reserva é maior
+
+```{r}
+
+( antec_media_por_dia <- round(sort(antec_media_por_dia), 2))
+
+```
+
+Gráfico da antecedencia média por dia da semana
+
+```{r}
+
+g_antec_media_por_dia <- barplot(antec_media_por_dia, 
+        main = "Antecedência média das reservas por dia da semana",
+        #xlab = "Dia da semana",
+        ylab = "Média de dias",
+        ylim = c(0,40),
+        las = 1,
+        col.lab = "gray40",
+        col = c("tomato3","tomato3","purple4","purple4","tomato3","tomato3", "tomato3"),
+        cex.lab = 0.7, cex.axis = 0.7, cex = 0.7,
+        border = NA
+)
+text(x=c(g_antec_media_por_dia), y=antec_media_por_dia, labels=antec_media_por_dia, 
+     pos=3, cex = 0.8, col = "gray20")
+
+```
+
