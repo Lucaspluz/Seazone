@@ -15,3 +15,6 @@ O arquivo "R Markdown seazone.Rmd" é uma maneira alternativa para rodar os cód
 O arquivo "icon.html" foi utilizado para adicionar a logo da Seazone na aba do "index.html" quando aberto no Google Chrome, Fire Fox, etc...
 
 O arquivo "index.html" encontra-se os códigos que utilizei para o desafio. Neste, possui uma vizualização melhor dos códigos.
+
+Link do "index.html":
+https://lucaspluz.github.io/Seazone/
